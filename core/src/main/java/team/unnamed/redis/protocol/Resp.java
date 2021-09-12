@@ -77,7 +77,7 @@ public final class Resp {
     private Resp() {
     }
 
-    public static Object handleResponse(InputStream input) throws IOException {
+    public static Object readResponse(InputStream input) throws IOException {
         int code = input.read();
         if (code == -1) {
             throw new EOFException("Found EOF when reading response");
@@ -86,9 +86,17 @@ public final class Resp {
         switch (code) {
             case ERROR_BYTE:
                 throw new RedisException(readSimpleString(input));
+            case SIMPLE_STRING_BYTE:
+                return readSimpleString(input);
+            case INTEGER_BYTE:
+                return readInteger(input);
+            case BULK_STRING_BYTE:
+                return readBulkString(input);
+            case ARRAY_BYTE:
+                return readArray(input);
             default: {
                 throw new RedisException("Unknown response byte: "
-                        + Integer.toHexString(code));
+                        + ((char) code));
             }
         }
     }
@@ -114,6 +122,73 @@ public final class Resp {
             data = input.read();
         }
         return builder.toString();
+    }
+
+    public static int readInteger(InputStream input) throws IOException {
+        int start = input.read();
+
+        if (start == -1) {
+            throw new EOFException("Found end when reading integer");
+        }
+
+        boolean negative = start == SCRIPT_BYTE;
+        int value = 0;
+        int b = negative ? input.read() : start;
+
+        while (true) {
+            if (b != CARRIAGE_RETURN) {
+                value = value * 10 + b - '0';
+                b = input.read();
+                continue;
+            } else if (input.read() != LINE_FEED) {
+                throw new RedisException("Invalid integer end");
+            }
+            break;
+        }
+
+        return negative ? -value : value;
+    }
+
+    public static byte[] readBulkString(InputStream input) throws IOException {
+        int length = readInteger(input);
+
+        // null bulk string
+        if (length == -1) {
+            return null;
+        }
+
+        byte[] data = new byte[length];
+        int read = 0;
+
+        while (read < length) {
+            int size = input.read(data, read, (length - read));
+            if (size == -1) {
+                throw new EOFException("Found EOF when" +
+                        " reading bulk string");
+            }
+            read += size;
+        }
+
+        if (input.read() != CARRIAGE_RETURN || input.read() != LINE_FEED) {
+            throw new RedisException("Invalid bulk string end, expected \\r\\n");
+        }
+
+        return data;
+    }
+
+    public static Object[] readArray(InputStream input) throws IOException {
+        int length = readInteger(input);
+
+        // null array
+        if (length == -1) {
+            return null;
+        }
+
+        Object[] value = new Object[length];
+        for (int i = 0; i < length; i++) {
+            value[i] = readResponse(input);
+        }
+        return value;
     }
 
     /**
@@ -203,16 +278,16 @@ public final class Resp {
      *   $0\r\n\r\n
      * @throws IOException If write fails
      */
-    public static void writeBulkString(OutputStream output, String value) throws IOException {
-        // bulk string start
+    public static void writeBulkString(OutputStream output, byte[] value) throws IOException {
+        // bulk data start
         output.write(BULK_STRING_BYTE);
 
-        // write string length
-        writeIntAsString(output, value.length());
+        // write data length
+        writeIntAsString(output, value.length);
         writeTermination(output);
 
-        // write the actual string
-        output.write(value.getBytes(CHARSET));
+        // write the actual data
+        output.write(value);
         writeTermination(output);
     }
 

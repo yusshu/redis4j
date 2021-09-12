@@ -28,7 +28,7 @@ public interface RespWriter {
      * writes the given {@code bytes}
      */
     static RespWriter bytes(byte[] bytes) {
-        return output -> output.write(bytes);
+        return output -> Resp.writeBulkString(output, bytes);
     }
 
     /**
@@ -36,7 +36,7 @@ public interface RespWriter {
      * writes the given {@code string}
      */
     static RespWriter bulkString(String string) {
-        return output -> Resp.writeBulkString(output, string);
+        return output -> Resp.writeBulkString(output, string.getBytes(Resp.CHARSET));
     }
 
 }

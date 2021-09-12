@@ -1,9 +1,5 @@
 package team.unnamed.redis.connection;
 
-import team.unnamed.redis.protocol.RedisCommands;
-import team.unnamed.redis.protocol.Resp;
-import team.unnamed.redis.serialize.RespWriter;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,15 +36,6 @@ public class RedisSocket {
 
     public OutputStream getOutputStream() {
         return outputStream;
-    }
-
-    public void set(String key, String value) throws IOException {
-        Resp.writeArray(
-                outputStream,
-                RedisCommands.SET,
-                RespWriter.bulkString(key),
-                RespWriter.bulkString(value)
-        );
     }
 
     private static Socket connect(SocketAddress address) throws IOException {
