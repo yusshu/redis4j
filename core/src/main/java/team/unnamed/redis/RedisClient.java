@@ -1,8 +1,5 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.connection.RedisSocket;
-import team.unnamed.redis.exception.RedisException;
-
 import java.io.IOException;
 import java.net.SocketAddress;
 

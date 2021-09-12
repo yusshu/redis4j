@@ -1,11 +1,5 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.connection.RedisSocket;
-import team.unnamed.redis.exception.RedisException;
-import team.unnamed.redis.protocol.RedisCommands;
-import team.unnamed.redis.protocol.Resp;
-import team.unnamed.redis.serialize.RespWriter;
-
 import java.io.IOException;
 
 public class RedisClientImpl implements RedisClient {
@@ -22,8 +16,8 @@ public class RedisClientImpl implements RedisClient {
             Resp.writeArray(
                     socket.getOutputStream(),
                     RedisCommands.SET,
-                    RespWriter.bytes(key),
-                    RespWriter.bytes(value)
+                    Writable.bytes(key),
+                    Writable.bytes(value)
             );
         } catch (IOException e) {
             throw new RedisException("Error occurred while sending command", e);
@@ -47,7 +41,7 @@ public class RedisClientImpl implements RedisClient {
             Resp.writeArray(
                     socket.getOutputStream(),
                     RedisCommands.GET,
-                    RespWriter.bytes(key)
+                    Writable.bytes(key)
             );
             return new String(((byte[]) Resp.readResponse(socket.getInputStream())), Resp.CHARSET);
         } catch (IOException e) {

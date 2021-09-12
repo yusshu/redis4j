@@ -1,6 +1,4 @@
-package team.unnamed.redis.serialize;
-
-import team.unnamed.redis.protocol.Resp;
+package team.unnamed.redis;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -9,7 +7,8 @@ import java.io.OutputStream;
  * Responsible for writing information to
  * a {@link OutputStream}
  */
-public interface RespWriter {
+@FunctionalInterface
+public interface Writable {
 
     /**
      * Writes the information into the
@@ -23,19 +22,20 @@ public interface RespWriter {
      */
     void write(OutputStream output) throws IOException;
 
+
     /**
-     * Returns a {@link RespWriter} that always
+     * Returns a {@link Writable} that always
      * writes the given {@code bytes}
      */
-    static RespWriter bytes(byte[] bytes) {
+    static Writable bytes(byte[] bytes) {
         return output -> Resp.writeBulkString(output, bytes);
     }
 
     /**
-     * Returns a {@link RespWriter} that always
+     * Returns a {@link Writable} that always
      * writes the given {@code string}
      */
-    static RespWriter bulkString(String string) {
+    static Writable bulkString(String string) {
         return output -> Resp.writeBulkString(output, string.getBytes(Resp.CHARSET));
     }
 

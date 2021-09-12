@@ -1,4 +1,4 @@
-package team.unnamed.redis.connection;
+package team.unnamed.redis;
 
 import java.io.IOException;
 import java.io.InputStream;

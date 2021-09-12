@@ -1,6 +1,6 @@
-package team.unnamed.redis.protocol;
+package team.unnamed.redis;
 
-import team.unnamed.redis.serialize.RespWriter;
+import team.unnamed.redis.Writable;
 
 /**
  * Utility class containing all the
@@ -8,7 +8,7 @@ import team.unnamed.redis.serialize.RespWriter;
  */
 public final class RedisCommands {
 
-    public static final RespWriter
+    public static final Writable
             COPY = command("COPY"),
             DEL = command("DEL"),
             ECHO = command("ECHO"),
@@ -24,8 +24,8 @@ public final class RedisCommands {
     private RedisCommands() {
     }
 
-    private static RespWriter command(String name) {
-        return RespWriter.bulkString(name);
+    private static Writable command(String name) {
+        return Writable.bulkString(name);
     }
 
 }

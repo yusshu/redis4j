@@ -1,7 +1,4 @@
-package team.unnamed.redis.protocol;
-
-import team.unnamed.redis.exception.RedisException;
-import team.unnamed.redis.serialize.RespWriter;
+package team.unnamed.redis;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -343,7 +340,7 @@ public final class Resp {
      */
     public static void writeArray(
             OutputStream output,
-            RespWriter... array
+            Writable... array
     ) throws IOException {
         // array start
         output.write(ARRAY_BYTE);
@@ -353,7 +350,7 @@ public final class Resp {
         writeTermination(output);
 
         // element write
-        for (RespWriter writer : array) {
+        for (Writable writer : array) {
             writer.write(output);
         }
     }

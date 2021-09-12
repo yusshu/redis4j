@@ -1,4 +1,4 @@
-package team.unnamed.redis.exception;
+package team.unnamed.redis;
 
 public class RedisException
         extends RuntimeException {
