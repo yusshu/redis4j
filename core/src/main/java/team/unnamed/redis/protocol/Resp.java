@@ -1,8 +1,11 @@
 package team.unnamed.redis.protocol;
 
+import team.unnamed.redis.exception.RedisException;
 import team.unnamed.redis.serialize.RespWriter;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -72,6 +75,45 @@ public final class Resp {
     public static final byte LINE_FEED = '\n';
 
     private Resp() {
+    }
+
+    public static Object handleResponse(InputStream input) throws IOException {
+        int code = input.read();
+        if (code == -1) {
+            throw new EOFException("Found EOF when reading response");
+        }
+
+        switch (code) {
+            case ERROR_BYTE:
+                throw new RedisException(readSimpleString(input));
+            default: {
+                throw new RedisException("Unknown response byte: "
+                        + Integer.toHexString(code));
+            }
+        }
+    }
+
+    public static String readSimpleString(InputStream input) throws IOException {
+        StringBuilder builder = new StringBuilder();
+        int data = input.read();
+        while (true) {
+            if (data == -1) {
+                throw new EOFException("Found end when reading simple string");
+            } else if (data == CARRIAGE_RETURN) {
+                int next = input.read();
+                if (next == LINE_FEED) {
+                    break;
+                } else {
+                    builder.append((char) data);
+                    data = next;
+                    continue;
+                }
+            }
+
+            builder.append((char) data);
+            data = input.read();
+        }
+        return builder.toString();
     }
 
     /**

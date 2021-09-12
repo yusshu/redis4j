@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
 
 public class RedisSocket {
 
@@ -35,6 +34,14 @@ public class RedisSocket {
         return socket;
     }
 
+    public InputStream getInputStream() {
+        return inputStream;
+    }
+
+    public OutputStream getOutputStream() {
+        return outputStream;
+    }
+
     public void set(String key, String value) throws IOException {
         Resp.writeArray(
                 outputStream,
@@ -42,11 +49,6 @@ public class RedisSocket {
                 RespWriter.bulkString(key),
                 RespWriter.bulkString(value)
         );
-    }
-
-    public void send(String data) throws IOException {
-        OutputStream output = socket.getOutputStream();
-        output.write(data.getBytes(StandardCharsets.UTF_8));
     }
 
     private static Socket connect(SocketAddress address) throws IOException {
