@@ -10,24 +10,33 @@ public class RedisClientImpl implements RedisClient {
         this.socket = socket;
     }
 
+    private void sendCommand(Writable... args) {
+        try {
+            Resp.writeArray(socket.getOutputStream(), args);
+        } catch (IOException e) {
+            throw new RedisException("Error occurred while" +
+                    " sending command", e);
+        }
+    }
+
+    private String readStringResponse() {
+        Object response;
+        try {
+            response = Resp.readResponse(socket.getInputStream());
+        } catch (IOException e) {
+            throw new RuntimeException("Error occurred while "
+                    + "reading command response");
+        }
+        if (response instanceof byte[]) {
+            return new String((byte[]) response, Resp.CHARSET);
+        }
+        return response.toString();
+    }
+
     @Override
     public String set(byte[] key, byte[] value) {
-        try {
-            Resp.writeArray(
-                    socket.getOutputStream(),
-                    RedisCommands.SET,
-                    Writable.bytes(key),
-                    Writable.bytes(value)
-            );
-        } catch (IOException e) {
-            throw new RedisException("Error occurred while sending command", e);
-        }
-        try {
-            return Resp.readResponse(socket.getInputStream())
-                    .toString();
-        } catch (IOException e) {
-            throw new RedisException("Error occurred while reading command response", e);
-        }
+        sendCommand(RedisCommands.SET, Writable.bytes(key), Writable.bytes(value));
+        return readStringResponse();
     }
 
     @Override
@@ -37,16 +46,8 @@ public class RedisClientImpl implements RedisClient {
 
     @Override
     public String get(byte[] key) {
-        try {
-            Resp.writeArray(
-                    socket.getOutputStream(),
-                    RedisCommands.GET,
-                    Writable.bytes(key)
-            );
-            return new String(((byte[]) Resp.readResponse(socket.getInputStream())), Resp.CHARSET);
-        } catch (IOException e) {
-            throw new RedisException("Error occurred while executing command");
-        }
+        sendCommand(RedisCommands.GET, Writable.bytes(key));
+        return readStringResponse();
     }
 
     @Override

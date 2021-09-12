@@ -1,7 +1,5 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.Writable;
-
 /**
  * Utility class containing all the
  * existing redis commands
