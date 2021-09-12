@@ -1,5 +1,7 @@
 package team.unnamed.redis;
 
+import team.unnamed.redis.datatype.RespStrings;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -28,7 +30,7 @@ public interface Writable {
      * writes the given {@code bytes}
      */
     static Writable bytes(byte[] bytes) {
-        return output -> Resp.writeBulkString(output, bytes);
+        return output -> RespStrings.writeBulkString(output, bytes);
     }
 
     /**
@@ -36,7 +38,7 @@ public interface Writable {
      * writes the given {@code string}
      */
     static Writable bulkString(String string) {
-        return output -> Resp.writeBulkString(output, string.getBytes(Resp.CHARSET));
+        return output -> RespStrings.writeBulkString(output, string.getBytes(Resp.CHARSET));
     }
 
 }

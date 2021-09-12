@@ -1,5 +1,6 @@
 package team.unnamed.redis;
 
+import team.unnamed.redis.datatype.RespArrays;
 import team.unnamed.redis.datatype.RespIntegers;
 import team.unnamed.redis.datatype.RespStrings;
 
@@ -50,27 +51,12 @@ public final class Resp {
             case BULK_STRING_BYTE:
                 return RespStrings.readBulkString(input);
             case ARRAY_BYTE:
-                return readArray(input);
+                return RespArrays.readArray(input);
             default: {
                 throw new RedisException("Unknown response byte: "
                         + ((char) code));
             }
         }
-    }
-
-    public static Object[] readArray(InputStream input) throws IOException {
-        int length = RespIntegers.readInteger(input);
-
-        // null array
-        if (length == -1) {
-            return null;
-        }
-
-        Object[] value = new Object[length];
-        for (int i = 0; i < length; i++) {
-            value[i] = readResponse(input);
-        }
-        return value;
     }
 
     /**
@@ -85,53 +71,6 @@ public final class Resp {
     public static void writeTermination(OutputStream output) throws IOException {
         output.write(CARRIAGE_RETURN);
         output.write(LINE_FEED);
-    }
-
-    /**
-     * Writes the given {@code array} into the provided
-     * {@code output} following the RESP specification.
-     * i.e.
-     *   *1\r\n:10\r\n
-     *   *0\r\n
-     *   *2\r\n+Hello\r\n+World\r\n
-     * @throws IOException If write fails
-     */
-    public static void writeArray(
-            OutputStream output,
-            Writable... array
-    ) throws IOException {
-        // array start
-        output.write(ARRAY_BYTE);
-
-        // array length write
-        RespIntegers.writeIntAsString(output, array.length);
-        writeTermination(output);
-
-        // element write
-        for (Writable writer : array) {
-            writer.write(output);
-        }
-    }
-
-    /**
-     * Writes a null array into the given {@code output}
-     * following the RESP specification.
-     * It writes:
-     *      *-1\r\n
-     * Note that an empty array and a null array are totally
-     * different
-     * @throws IOException If write fails
-     */
-    public static void writeNullArray(OutputStream output) throws IOException {
-        // array start
-        output.write(ARRAY_BYTE);
-
-        // write length (-1)
-        output.write(SCRIPT_BYTE);
-        output.write((byte) '1');
-
-        // termination
-        writeTermination(output);
     }
 
 }

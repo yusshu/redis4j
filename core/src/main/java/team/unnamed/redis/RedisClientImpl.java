@@ -1,5 +1,7 @@
 package team.unnamed.redis;
 
+import team.unnamed.redis.datatype.RespArrays;
+
 import java.io.IOException;
 
 public class RedisClientImpl implements RedisClient {
@@ -12,7 +14,7 @@ public class RedisClientImpl implements RedisClient {
 
     private void sendCommand(Writable... args) {
         try {
-            Resp.writeArray(socket.getOutputStream(), args);
+            RespArrays.writeArray(socket.getOutputStream(), args);
         } catch (IOException e) {
             throw new RedisException("Error occurred while" +
                     " sending command", e);
