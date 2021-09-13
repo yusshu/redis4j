@@ -15,6 +15,8 @@ public interface RedisClient {
 
     String get(String key);
 
+    void execute(RedisOperation operation);
+
     static RedisClient create(SocketAddress address) {
         try {
             return new RedisClientImpl(new RedisSocket(address));

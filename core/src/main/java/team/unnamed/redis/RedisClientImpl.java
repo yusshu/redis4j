@@ -36,6 +36,16 @@ public class RedisClientImpl implements RedisClient {
     }
 
     @Override
+    public void execute(RedisOperation operation) {
+        try {
+            operation.write(socket.getOutputStream());
+        } catch (IOException e) {
+            throw new RedisException("Error occurred while"
+                    + " executing operation");
+        }
+    }
+
+    @Override
     public String set(byte[] key, byte[] value) {
         sendCommand(RedisCommands.SET, Writable.bytes(key), Writable.bytes(value));
         return readStringResponse();
