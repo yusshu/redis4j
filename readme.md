@@ -9,5 +9,5 @@ RedisGetAndSetBenchmark.jedisGetAndSet              avgt    2   29.158          
 RedisGetAndSetBenchmark.thisLibraryCachedGetAndSet  avgt    2    4.740          us/op
 RedisGetAndSetBenchmark.thisLibraryGetAndSet        avgt    2  156.829          us/op
 ```
-Currently, cached get and set operations are 6 times faster that Jedis operations, however,
+Currently, cached get and set operations are 6 times faster than Jedis operations, however,
 uncached operations are 5 times slower (wip)
