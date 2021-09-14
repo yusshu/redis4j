@@ -1,12 +1,14 @@
 package team.unnamed.redis;
 
+import java.io.Closeable;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-public class RedisSocket {
+public class RedisSocket implements Flushable, Closeable {
 
     private final SocketAddress address;
     private final Socket socket;
@@ -36,6 +38,16 @@ public class RedisSocket {
 
     public OutputStream getOutputStream() {
         return outputStream;
+    }
+
+    @Override
+    public void flush() throws IOException {
+        outputStream.flush();
+    }
+
+    @Override
+    public void close() throws IOException {
+        // TODO:
     }
 
     private static Socket connect(SocketAddress address) throws IOException {

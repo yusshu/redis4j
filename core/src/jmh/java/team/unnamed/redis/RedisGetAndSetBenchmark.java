@@ -8,7 +8,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class RedisGetAndSetBenchmark {
 
-    private Jedis jedis;
+    private Client jedis;
     private RedisClient redisClient;
 
     private RedisOperation getOperation;
@@ -27,7 +27,7 @@ public class RedisGetAndSetBenchmark {
 
     @Setup(Level.Trial)
     public void setup() throws IOException {
-        jedis = new Jedis("127.0.0.1", 6379);
+        jedis = new Client("127.0.0.1", 6379);
         redisClient = RedisClient.create(new InetSocketAddress("127.0.0.1", 6379));
 
         jedis.set("test", "test");
@@ -53,6 +53,7 @@ public class RedisGetAndSetBenchmark {
     public void jedisGetAndSet() {
         jedis.set("do", "a flip");
         jedis.get("do");
+        jedis.getBulkReply();
     }
 
 }

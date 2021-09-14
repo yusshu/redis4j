@@ -22,11 +22,19 @@ public class RedisClientImpl implements RedisClient {
     }
 
     private String readStringResponse() {
+
+        try {
+            socket.flush();
+        } catch (IOException e) {
+            throw new RedisException("Error occurred while" +
+                    " flushing output stream");
+        }
+
         Object response;
         try {
             response = Resp.readResponse(socket.getInputStream());
         } catch (IOException e) {
-            throw new RuntimeException("Error occurred while "
+            throw new RedisException("Error occurred while "
                     + "reading command response");
         }
         if (response instanceof byte[]) {
