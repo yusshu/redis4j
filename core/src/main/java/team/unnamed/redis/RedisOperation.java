@@ -1,40 +1,40 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.datatype.RespArrays;
+import team.unnamed.redis.io.BufferedRespOutputStream;
+import team.unnamed.redis.io.RespOutputStream;
+import team.unnamed.redis.io.RespWritable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 
-public class RedisOperation implements Writable {
+public class RedisOperation implements RespWritable {
 
     private final byte[] bytes;
 
-    public RedisOperation(Writable writable) throws IOException {
+    public RedisOperation(RespWritable writable) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        writable.write(output);
+        // TODO: replace with a direct resp output stream!
+        writable.write(new BufferedRespOutputStream(output, 1024));
         this.bytes = output.toByteArray();
     }
 
     @Override
-    public void write(OutputStream output) throws IOException {
+    public void write(RespOutputStream output) throws IOException {
         output.write(bytes);
     }
 
     public static RedisOperation get(String key) throws IOException {
-        return new RedisOperation(output -> RespArrays.writeArray(
-                output,
+        return new RedisOperation(output -> output.writeArray(
                 RedisCommands.GET,
-                Writable.bulkString(key)
+                RespWritable.bulkString(key)
         ));
     }
 
     public static RedisOperation set(String key, String value) throws IOException {
-        return new RedisOperation(output -> RespArrays.writeArray(
-                output,
+        return new RedisOperation(output -> output.writeArray(
                 RedisCommands.SET,
-                Writable.bulkString(key),
-                Writable.bulkString(value)
+                RespWritable.bulkString(key),
+                RespWritable.bulkString(value)
         ));
     }
 

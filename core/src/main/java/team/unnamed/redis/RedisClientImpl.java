@@ -1,6 +1,6 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.datatype.RespArrays;
+import team.unnamed.redis.io.RespWritable;
 
 import java.io.IOException;
 
@@ -12,9 +12,9 @@ public class RedisClientImpl implements RedisClient {
         this.socket = socket;
     }
 
-    private void sendCommand(Writable... args) {
+    private void sendCommand(RespWritable... args) {
         try {
-            RespArrays.writeArray(socket.getOutputStream(), args);
+            socket.getOutputStream().writeArray(args);
         } catch (IOException e) {
             throw new RedisException("Error occurred while" +
                     " sending command", e);
@@ -22,13 +22,7 @@ public class RedisClientImpl implements RedisClient {
     }
 
     private String readStringResponse() {
-
-        try {
-            socket.flush();
-        } catch (IOException e) {
-            throw new RedisException("Error occurred while" +
-                    " flushing output stream");
-        }
+        socket.flush();
 
         Object response;
         try {
@@ -55,7 +49,7 @@ public class RedisClientImpl implements RedisClient {
 
     @Override
     public String set(byte[] key, byte[] value) {
-        sendCommand(RedisCommands.SET, Writable.bytes(key), Writable.bytes(value));
+        sendCommand(RedisCommands.SET, RespWritable.bytes(key), RespWritable.bytes(value));
         return readStringResponse();
     }
 
@@ -66,7 +60,7 @@ public class RedisClientImpl implements RedisClient {
 
     @Override
     public String get(byte[] key) {
-        sendCommand(RedisCommands.GET, Writable.bytes(key));
+        sendCommand(RedisCommands.GET, RespWritable.bytes(key));
         return readStringResponse();
     }
 

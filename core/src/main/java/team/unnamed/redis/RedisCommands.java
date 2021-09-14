@@ -1,12 +1,14 @@
 package team.unnamed.redis;
 
+import team.unnamed.redis.io.RespWritable;
+
 /**
  * Utility class containing all the
  * existing redis commands
  */
 public final class RedisCommands {
 
-    public static final Writable
+    public static final RespWritable
             COPY = command("COPY"),
             DEL = command("DEL"),
             ECHO = command("ECHO"),
@@ -22,8 +24,8 @@ public final class RedisCommands {
     private RedisCommands() {
     }
 
-    private static Writable command(String name) {
-        return Writable.bulkString(name);
+    private static RespWritable command(String name) {
+        return RespWritable.bulkString(name);
     }
 
 }

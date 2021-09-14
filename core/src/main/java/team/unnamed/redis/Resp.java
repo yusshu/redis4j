@@ -1,13 +1,9 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.datatype.RespArrays;
-import team.unnamed.redis.datatype.RespIntegers;
-import team.unnamed.redis.datatype.RespStrings;
+import team.unnamed.redis.io.RespInputStream;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -35,7 +31,7 @@ public final class Resp {
     private Resp() {
     }
 
-    public static Object readResponse(InputStream input) throws IOException {
+    public static Object readResponse(RespInputStream input) throws IOException {
         int code = input.read();
         if (code == -1) {
             throw new EOFException("Found EOF when reading response");
@@ -43,34 +39,20 @@ public final class Resp {
 
         switch (code) {
             case ERROR_BYTE:
-                throw new RedisException(RespStrings.readSimpleString(input));
+                throw new RedisException(input.readSimpleString());
             case SIMPLE_STRING_BYTE:
-                return RespStrings.readSimpleString(input);
+                return input.readSimpleString();
             case INTEGER_BYTE:
-                return RespIntegers.readInteger(input);
+                return input.readInt();
             case BULK_STRING_BYTE:
-                return RespStrings.readBulkString(input);
+                return input.readBulkString();
             case ARRAY_BYTE:
-                return RespArrays.readArray(input);
+                return input.readArray();
             default: {
                 throw new RedisException("Unknown response byte: "
                         + ((char) code));
             }
         }
-    }
-
-    /**
-     * Simply writes the termination bytes to the given {@code output},
-     * RESP uses CRLF for this
-     *
-     * <strong>Note that the given {@code output} won't be closed
-     * when writing the termination</strong>
-     *
-     * @throws IOException If write fails
-     */
-    public static void writeTermination(OutputStream output) throws IOException {
-        output.write(CARRIAGE_RETURN);
-        output.write(LINE_FEED);
     }
 
 }

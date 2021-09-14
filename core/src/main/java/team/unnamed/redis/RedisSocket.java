@@ -1,10 +1,13 @@
 package team.unnamed.redis;
 
+import team.unnamed.redis.factory.BufferedStreamFactory;
+import team.unnamed.redis.factory.StreamFactory;
+import team.unnamed.redis.io.RespInputStream;
+import team.unnamed.redis.io.RespOutputStream;
+
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 
@@ -13,15 +16,22 @@ public class RedisSocket implements Flushable, Closeable {
     private final SocketAddress address;
     private final Socket socket;
 
-    private final InputStream inputStream;
-    private final OutputStream outputStream;
+    private final RespInputStream inputStream;
+    private final RespOutputStream outputStream;
 
-    public RedisSocket(SocketAddress address) throws IOException {
+    public RedisSocket(
+            SocketAddress address,
+            StreamFactory streamFactory
+    ) throws IOException {
         this.address = address;
         this.socket = connect(address);
 
-        this.inputStream = socket.getInputStream();
-        this.outputStream = socket.getOutputStream();
+        this.inputStream = streamFactory.decorate(socket.getInputStream());
+        this.outputStream = streamFactory.decorate(socket.getOutputStream());
+    }
+
+    public RedisSocket(SocketAddress address) throws IOException {
+        this(address, new BufferedStreamFactory());
     }
 
     public SocketAddress getAddress() {
@@ -32,22 +42,31 @@ public class RedisSocket implements Flushable, Closeable {
         return socket;
     }
 
-    public InputStream getInputStream() {
+    public RespInputStream getInputStream() {
         return inputStream;
     }
 
-    public OutputStream getOutputStream() {
+    public RespOutputStream getOutputStream() {
         return outputStream;
     }
 
     @Override
-    public void flush() throws IOException {
-        outputStream.flush();
+    public void flush() {
+        try {
+            outputStream.flush();
+        } catch (IOException e) {
+            throw new RedisException(e);
+        }
     }
 
     @Override
-    public void close() throws IOException {
-        // TODO:
+    public void close() {
+        try {
+            outputStream.flush();
+            socket.close();
+        } catch (IOException e) {
+            throw new RedisException(e);
+        }
     }
 
     private static Socket connect(SocketAddress address) throws IOException {
