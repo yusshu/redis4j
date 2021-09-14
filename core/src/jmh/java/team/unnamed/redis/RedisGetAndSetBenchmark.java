@@ -38,13 +38,13 @@ public class RedisGetAndSetBenchmark {
     }
 
     @Benchmark
-    public void thisLibraryCachedGetAndSet() {
+    public void redis4jCachedGetAndSet() {
         redisClient.execute(setOperation);
         redisClient.execute(getOperation);
     }
 
     @Benchmark
-    public void thisLibraryGetAndSet() {
+    public void redis4jGetAndSet() {
         redisClient.set("do", "a flip");
         redisClient.get("do");
     }
