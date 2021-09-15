@@ -96,4 +96,13 @@ public abstract class RespOutputStream extends FilterOutputStream {
      */
     public abstract void writeNullArray() throws IOException;
 
+    /**
+     * Writes the given {@code command} and {@code args} to the underlying
+     * {@link OutputStream}. Similar to {@link RespOutputStream#writeArray},
+     * but the arguments are written as bulk strings, so wrapping them in
+     * bulk strings isn't necessary
+     * @throws IOException If write fails
+     */
+    public abstract void writeCommand(RespWritable command, byte[]... args) throws IOException;
+
 }

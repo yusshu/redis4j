@@ -19,7 +19,8 @@ public final class RedisCommands {
             PING = command("PING"),
             QUIT = command("QUIT"),
             PUBLISH = command("PUBLISH"),
-            SET = command("SET");
+            SET = command("SET"),
+            SUBSCRIBE = command("SUBSCRIBE");
 
     private RedisCommands() {
     }

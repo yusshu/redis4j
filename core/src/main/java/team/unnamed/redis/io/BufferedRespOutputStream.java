@@ -236,6 +236,23 @@ public class BufferedRespOutputStream extends RespOutputStream {
     }
 
     @Override
+    public void writeCommand(RespWritable command, byte[]... args) throws IOException {
+        // array start
+        write(Resp.ARRAY_BYTE);
+
+        // write length
+        writeIntAsString(args.length + 1);
+        writeTermination();
+
+        command.write(this);
+
+        // element write
+        for (byte[] element : args) {
+            writeBulkString(element);
+        }
+    }
+
+    @Override
     public void flush() throws IOException {
         flushBuffer();
         out.flush();

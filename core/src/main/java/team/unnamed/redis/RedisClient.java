@@ -18,6 +18,11 @@ public interface RedisClient {
     String get(String key);
 
     //#region Redis Publisher/Subscriber stuff
+    /**
+     * Sends a SUBSCRIBE command for the given {@code channels}
+     * and waits for responses, it's a blocking operation.
+     * Calls {@code subscriber} methods when a message is received.
+     */
     void subscribe(RedisSubscriber subscriber, String... channels);
     //#endregion
 

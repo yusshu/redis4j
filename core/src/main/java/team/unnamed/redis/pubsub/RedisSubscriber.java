@@ -63,7 +63,7 @@ public interface RedisSubscriber {
     default void onPUnsubscribe(String pattern, int subscriptions) {
     }
 
-    default void onPong(String message) {
+    default void onPong(String pattern) {
     }
 
 }
