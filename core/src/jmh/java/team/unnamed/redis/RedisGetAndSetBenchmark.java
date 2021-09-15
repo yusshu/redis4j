@@ -52,6 +52,7 @@ public class RedisGetAndSetBenchmark {
     @Benchmark
     public void jedisGetAndSet() {
         jedis.set("do", "a flip");
+        jedis.getStatusCodeReply();
         jedis.get("do");
         jedis.getBulkReply();
     }

@@ -28,9 +28,31 @@ public class BufferedRespInputStream extends RespInputStream {
         }
     }
 
-    protected byte bufferRead() throws IOException {
+    public byte readByte() throws IOException {
         fill();
         return buffer[cursor++];
+    }
+
+    @Override
+    public int read() throws IOException {
+        return readByte();
+    }
+
+    @Override
+    public int read(byte[] bytes, int offset, int length) throws IOException {
+        fill(); // fill buffer
+
+        // how many bytes will be read
+        int len = Math.min(
+                // the remaining bytes
+                limit - cursor,
+                // or the actual array length
+                length
+        );
+
+        System.arraycopy(buffer, cursor, bytes, offset, len);
+        cursor += len;
+        return len;
     }
 
     @Override
@@ -51,7 +73,7 @@ public class BufferedRespInputStream extends RespInputStream {
 
     @Override
     public int readInt() throws IOException {
-        int start = read();
+        byte start = readByte();
 
         if (start == -1) {
             throw new EOFException("Found end when reading integer");
@@ -59,14 +81,14 @@ public class BufferedRespInputStream extends RespInputStream {
 
         boolean negative = start == Resp.SCRIPT_BYTE;
         int value = 0;
-        int b = negative ? read() : start;
+        int b = negative ? readByte() : start;
 
         while (true) {
             if (b != Resp.CARRIAGE_RETURN) {
                 value = value * 10 + b - '0';
-                b = read();
+                b = readByte();
                 continue;
-            } else if (read() != Resp.LINE_FEED) {
+            } else if (readByte() != Resp.LINE_FEED) {
                 throw new RedisException("Invalid integer end");
             }
             break;
@@ -78,12 +100,13 @@ public class BufferedRespInputStream extends RespInputStream {
     @Override
     public String readSimpleString() throws IOException {
         StringBuilder builder = new StringBuilder();
-        int data = bufferRead();
+        fill();
+        byte data = buffer[cursor++];
+
         while (true) {
-            if (data == -1) {
-                throw new EOFException("Found end when reading simple string");
-            } else if (data == Resp.CARRIAGE_RETURN) {
-                int next = bufferRead();
+            if (data == Resp.CARRIAGE_RETURN) {
+                fill();
+                byte next = buffer[cursor++];
                 if (next == Resp.LINE_FEED) {
                     break;
                 } else {
@@ -94,7 +117,8 @@ public class BufferedRespInputStream extends RespInputStream {
             }
 
             builder.append((char) data);
-            data = bufferRead();
+            fill();
+            data = buffer[cursor++];
         }
         return builder.toString();
     }
@@ -109,20 +133,18 @@ public class BufferedRespInputStream extends RespInputStream {
         }
 
         byte[] data = new byte[length];
-        int read = 0;
+        int offset = 0;
 
-        while (read < length) {
-            int size = read(data, read, (length - read));
-            if (size == -1) {
-                throw new EOFException("Found EOF when" +
-                        " reading bulk string");
+        while (offset < length) {
+            int read = read(data, offset, length - offset);
+            if (read == -1) {
+                throw new EOFException();
             }
-            read += size;
+            offset += read;
         }
 
-        if (bufferRead() != Resp.CARRIAGE_RETURN || bufferRead() != Resp.LINE_FEED) {
-            throw new RedisException("Invalid bulk string end, expected \\r\\n");
-        }
+        readByte();
+        readByte();
 
         return data;
     }
