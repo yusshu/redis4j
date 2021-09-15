@@ -22,6 +22,6 @@ tasks {
 
 jmh {
     warmupIterations.set(1)
-    iterations.set(1)
+    iterations.set(6)
     fork.set(1)
 }

@@ -34,6 +34,27 @@ public class BufferedRespInputStream extends RespInputStream {
     }
 
     @Override
+    public Object readNext() throws IOException {
+        byte code = readByte();
+        switch (code) {
+            case Resp.ERROR_BYTE:
+                throw new RedisException(new String(readSimpleString()));
+            case Resp.SIMPLE_STRING_BYTE:
+                return readSimpleString();
+            case Resp.INTEGER_BYTE:
+                return readInt();
+            case Resp.BULK_STRING_BYTE:
+                return readBulkString();
+            case Resp.ARRAY_BYTE:
+                return readArray();
+            default: {
+                throw new RedisException("Unknown response byte: "
+                        + ((char) code));
+            }
+        }
+    }
+
+    @Override
     public int read() throws IOException {
         return readByte();
     }
@@ -66,61 +87,55 @@ public class BufferedRespInputStream extends RespInputStream {
 
         Object[] value = new Object[length];
         for (int i = 0; i < length; i++) {
-            value[i] = Resp.readResponse(this);
+            value[i] = readNext();
         }
         return value;
     }
 
     @Override
     public int readInt() throws IOException {
-        byte start = readByte();
+        fill();
 
-        if (start == -1) {
-            throw new EOFException("Found end when reading integer");
+        boolean negative = buffer[cursor] == '-';
+        if (negative) {
+            ++cursor;
         }
 
-        boolean negative = start == Resp.SCRIPT_BYTE;
         int value = 0;
-        int b = negative ? readByte() : start;
-
         while (true) {
-            if (b != Resp.CARRIAGE_RETURN) {
+            fill();
+            int b = buffer[cursor++];
+            if (b == Resp.CARRIAGE_RETURN) {
+                fill();
+                if (buffer[cursor++] != Resp.LINE_FEED) {
+                    throw new RedisException("Unexpected char");
+                }
+                break;
+            } else {
                 value = value * 10 + b - '0';
-                b = readByte();
-                continue;
-            } else if (readByte() != Resp.LINE_FEED) {
-                throw new RedisException("Invalid integer end");
             }
-            break;
         }
 
-        return negative ? -value : value;
+        return (negative ? -value : value);
     }
 
     @Override
-    public String readSimpleString() throws IOException {
-        StringBuilder builder = new StringBuilder();
+    public byte[] readSimpleString() throws IOException {
         fill();
-        byte data = buffer[cursor++];
+
+        int pos = cursor;
 
         while (true) {
-            if (data == Resp.CARRIAGE_RETURN) {
-                fill();
-                byte next = buffer[cursor++];
-                if (next == Resp.LINE_FEED) {
-                    break;
-                } else {
-                    builder.append((char) data);
-                    data = next;
-                    continue;
-                }
+            if (buffer[pos++] == Resp.CARRIAGE_RETURN
+                    && buffer[pos++] == Resp.LINE_FEED) {
+                break;
             }
-
-            builder.append((char) data);
-            fill();
-            data = buffer[cursor++];
         }
-        return builder.toString();
+
+        byte[] data = new byte[pos - cursor - 2];
+        System.arraycopy(buffer, cursor, data, 0, data.length);
+        cursor = pos;
+        return data;
     }
 
     @Override

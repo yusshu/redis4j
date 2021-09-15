@@ -16,11 +16,13 @@ public abstract class RespInputStream extends FilterInputStream {
         super(in);
     }
 
+    public abstract Object readNext() throws IOException;
+
     public abstract Object[] readArray() throws IOException;
 
     public abstract int readInt() throws IOException;
 
-    public abstract String readSimpleString() throws IOException;
+    public abstract byte[] readSimpleString() throws IOException;
 
     public abstract byte[] readBulkString() throws IOException;
 

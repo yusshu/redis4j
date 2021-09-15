@@ -1,6 +1,7 @@
 package team.unnamed.redis;
 
 import team.unnamed.redis.io.RespWritable;
+import team.unnamed.redis.pubsub.RedisSubscriber;
 
 import java.io.IOException;
 
@@ -23,18 +24,11 @@ public class RedisClientImpl implements RedisClient {
 
     private String readStringResponse() {
         socket.flush();
-
-        Object response;
         try {
-            response = Resp.readResponse(socket.getInputStream());
+            return new String((byte[]) socket.getInputStream().readNext(), Resp.CHARSET);
         } catch (IOException e) {
-            throw new RedisException("Error occurred while "
-                    + "reading command response");
+            throw new RedisException(e);
         }
-        if (response instanceof byte[]) {
-            return new String((byte[]) response, Resp.CHARSET);
-        }
-        return response.toString();
     }
 
     @Override
@@ -68,4 +62,9 @@ public class RedisClientImpl implements RedisClient {
     public String get(String key) {
         return get(key.getBytes(Resp.CHARSET));
     }
+
+    @Override
+    public void subscribe(RedisSubscriber subscriber, String... channels) {
+    }
+
 }

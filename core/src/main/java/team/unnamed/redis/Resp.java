@@ -31,28 +31,4 @@ public final class Resp {
     private Resp() {
     }
 
-    public static Object readResponse(RespInputStream input) throws IOException {
-        int code = input.read();
-        if (code == -1) {
-            throw new EOFException("Found EOF when reading response");
-        }
-
-        switch (code) {
-            case ERROR_BYTE:
-                throw new RedisException(input.readSimpleString());
-            case SIMPLE_STRING_BYTE:
-                return input.readSimpleString();
-            case INTEGER_BYTE:
-                return input.readInt();
-            case BULK_STRING_BYTE:
-                return input.readBulkString();
-            case ARRAY_BYTE:
-                return input.readArray();
-            default: {
-                throw new RedisException("Unknown response byte: "
-                        + ((char) code));
-            }
-        }
-    }
-
 }

@@ -1,5 +1,7 @@
 package team.unnamed.redis;
 
+import team.unnamed.redis.pubsub.RedisSubscriber;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 
@@ -14,6 +16,10 @@ public interface RedisClient {
     String get(byte[] key);
 
     String get(String key);
+
+    //#region Redis Publisher/Subscriber stuff
+    void subscribe(RedisSubscriber subscriber, String... channels);
+    //#endregion
 
     void execute(RedisOperation operation);
 
