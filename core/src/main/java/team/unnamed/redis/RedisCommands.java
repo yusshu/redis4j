@@ -1,6 +1,6 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.io.RespWritable;
+import team.unnamed.redis.io.Integers;
 
 /**
  * Utility class containing all the
@@ -8,7 +8,7 @@ import team.unnamed.redis.io.RespWritable;
  */
 public final class RedisCommands {
 
-    public static final RespWritable
+    public static final byte[]
             COPY = command("COPY"),
             DEL = command("DEL"),
             ECHO = command("ECHO"),
@@ -25,8 +25,32 @@ public final class RedisCommands {
     private RedisCommands() {
     }
 
-    private static RespWritable command(String name) {
-        return RespWritable.bulkString(name);
+    private static byte[] command(String name) {
+        byte[] string = name.getBytes(Resp.CHARSET);
+
+        int len = string.length;
+        int size = Integers.getStringSize(len);
+        int cursor = 0;
+
+        byte[] result = new byte[string.length + size + 5];
+
+        result[cursor++] = Resp.BULK_STRING_BYTE;
+
+        // write length
+        Integers.getChars(len, result, cursor, size);
+        cursor += size;
+
+        result[cursor++] = Resp.CARRIAGE_RETURN;
+        result[cursor++] = Resp.LINE_FEED;
+
+        // write string
+        System.arraycopy(string, 0, result, cursor, string.length);
+        cursor += string.length;
+
+        result[cursor++] = Resp.CARRIAGE_RETURN;
+        result[cursor] = Resp.LINE_FEED;
+
+        return result;
     }
 
 }

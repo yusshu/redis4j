@@ -1,9 +1,5 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.io.RespInputStream;
-
-import java.io.EOFException;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -27,6 +23,8 @@ public final class Resp {
 
     public static final byte CARRIAGE_RETURN = '\r';
     public static final byte LINE_FEED = '\n';
+
+    public static final byte ASCII_ONE_BYTE = '1';
 
     private Resp() {
     }

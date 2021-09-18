@@ -1,12 +1,10 @@
 package team.unnamed.redis;
 
-import team.unnamed.redis.io.RespWritable;
 import team.unnamed.redis.pubsub.RedisSubscriber;
 import team.unnamed.redis.pubsub.BlockingRedisSubscription;
-import team.unnamed.redis.util.Strings;
+import team.unnamed.redis.io.Strings;
 
 import java.io.IOException;
-import java.util.List;
 
 public class RedisClientImpl implements RedisClient {
 
@@ -16,7 +14,7 @@ public class RedisClientImpl implements RedisClient {
         this.socket = socket;
     }
 
-    private void sendCommand(RespWritable command, byte[]... args) {
+    private void sendCommand(byte[] command, byte[]... args) {
         try {
             socket.getOutputStream().writeCommand(command, args);
         } catch (IOException e) {
@@ -27,7 +25,7 @@ public class RedisClientImpl implements RedisClient {
 
     public String readStringResponse() {
         try {
-            return new String((byte[]) socket.getInputStream().readNext(), Resp.CHARSET);
+            return Strings.decode((byte[]) socket.getInputStream().readNext());
         } catch (IOException e) {
             throw new RedisException(e);
         }
@@ -38,16 +36,6 @@ public class RedisClientImpl implements RedisClient {
             return (Object[]) socket.getInputStream().readNext();
         } catch (IOException e) {
             throw new RedisException(e);
-        }
-    }
-
-    @Override
-    public void execute(RedisOperation operation) {
-        try {
-            operation.write(socket.getOutputStream());
-        } catch (IOException e) {
-            throw new RedisException("Error occurred while"
-                    + " executing operation");
         }
     }
 

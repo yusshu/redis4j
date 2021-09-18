@@ -2,7 +2,7 @@ package team.unnamed.redis.pubsub;
 
 import team.unnamed.redis.RedisClientImpl;
 import team.unnamed.redis.RedisException;
-import team.unnamed.redis.util.Strings;
+import team.unnamed.redis.io.Strings;
 
 public class BlockingRedisSubscription implements Runnable {
 

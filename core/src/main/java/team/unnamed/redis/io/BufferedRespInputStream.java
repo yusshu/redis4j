@@ -37,16 +37,16 @@ public class BufferedRespInputStream extends RespInputStream {
     public Object readNext() throws IOException {
         byte code = readByte();
         switch (code) {
-            case Resp.ERROR_BYTE:
-                throw new RedisException(new String(readSimpleString()));
             case Resp.SIMPLE_STRING_BYTE:
                 return readSimpleString();
-            case Resp.INTEGER_BYTE:
-                return readInt();
             case Resp.BULK_STRING_BYTE:
                 return readBulkString();
             case Resp.ARRAY_BYTE:
                 return readArray();
+            case Resp.INTEGER_BYTE:
+                return readInt();
+            case Resp.ERROR_BYTE:
+                throw new RedisException(Strings.decode(readSimpleString()));
             default: {
                 throw new RedisException("Unknown response byte: "
                         + ((char) code));
@@ -132,8 +132,9 @@ public class BufferedRespInputStream extends RespInputStream {
             }
         }
 
-        byte[] data = new byte[pos - cursor - 2];
-        System.arraycopy(buffer, cursor, data, 0, data.length);
+        int len = pos - cursor - 2;
+        byte[] data = new byte[len];
+        System.arraycopy(buffer, cursor, data, 0, len);
         cursor = pos;
         return data;
     }

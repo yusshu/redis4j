@@ -72,17 +72,6 @@ public abstract class RespOutputStream extends FilterOutputStream {
      *   *2\r\n+Hello\r\n+World\r\n
      * @throws IOException If write fails
      */
-    public abstract void writeArray(RespWritable... array) throws IOException;
-
-    /**
-     * Writes the given {@code array} into this output stream following
-     * the RESP specification.
-     * i.e.
-     *   *1\r\n:10\r\n
-     *   *0\r\n
-     *   *2\r\n+Hello\r\n+World\r\n
-     * @throws IOException If write fails
-     */
     public abstract void writeArray(byte[]... array) throws IOException;
 
     /**
@@ -103,6 +92,6 @@ public abstract class RespOutputStream extends FilterOutputStream {
      * bulk strings isn't necessary
      * @throws IOException If write fails
      */
-    public abstract void writeCommand(RespWritable command, byte[]... args) throws IOException;
+    public abstract void writeCommand(byte[] command, byte[]... args) throws IOException;
 
 }

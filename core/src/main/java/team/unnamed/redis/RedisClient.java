@@ -26,8 +26,6 @@ public interface RedisClient {
     void subscribe(RedisSubscriber subscriber, String... channels);
     //#endregion
 
-    void execute(RedisOperation operation);
-
     static RedisClient create(SocketAddress address) {
         try {
             return new RedisClientImpl(new RedisSocket(address));

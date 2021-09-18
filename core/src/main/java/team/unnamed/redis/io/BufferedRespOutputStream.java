@@ -7,49 +7,6 @@ import java.io.OutputStream;
 
 public class BufferedRespOutputStream extends RespOutputStream {
 
-    /**
-     * Size table for integers, to check the string length of a number.
-     * Taken from {@link Integer} class
-     */
-    private static final int[] SIZE_TABLE = {
-            9, 99, 999, 9999, 99999, 999999, 9999999,
-            99999999, 999999999, Integer.MAX_VALUE
-    };
-
-    private static final byte[] DIGITS = {
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-            'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-            'u', 'v', 'w', 'x', 'y', 'z'
-    };
-    private static final byte[] DIGITS_TENS = {
-            '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',
-            '1', '1', '1', '1', '1', '1', '1', '1', '1', '1',
-            '2', '2', '2', '2', '2', '2', '2', '2', '2', '2',
-            '3', '3', '3', '3', '3', '3', '3', '3', '3', '3',
-            '4', '4', '4', '4', '4', '4', '4', '4', '4', '4',
-            '5', '5', '5', '5', '5', '5', '5', '5', '5', '5',
-            '6', '6', '6', '6', '6', '6', '6', '6', '6', '6',
-            '7', '7', '7', '7', '7', '7', '7', '7', '7', '7',
-            '8', '8', '8', '8', '8', '8', '8', '8', '8', '8',
-            '9', '9', '9', '9', '9', '9', '9', '9', '9', '9'
-    };
-
-    private static final byte[] DIGITS_ONES = {
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
-    };
-
-    private static final int TWO_BYTES_BITS = 1 << 16;
-
     private final byte[] buffer;
     private int cursor;
 
@@ -88,12 +45,27 @@ public class BufferedRespOutputStream extends RespOutputStream {
         }
     }
 
+    @Override
+    public void write(byte[] bytes) throws IOException {
+        this.write(bytes, 0, bytes.length);
+    }
+
     private void writeTermination() throws IOException {
         if (2 >= buffer.length) {
             flushBuffer();
         }
         buffer[cursor++] = Resp.CARRIAGE_RETURN;
         buffer[cursor++] = Resp.LINE_FEED;
+    }
+
+    private void writeNegativeOneAndTermination() throws IOException {
+        if (4 >= buffer.length) {
+            flushBuffer();
+        }
+        buffer[cursor++] = Resp.CARRIAGE_RETURN;
+        buffer[cursor++] = Resp.LINE_FEED;
+        buffer[cursor++] = Resp.SCRIPT_BYTE;
+        buffer[cursor++] = Resp.ASCII_ONE_BYTE;
     }
 
     /**
@@ -103,40 +75,12 @@ public class BufferedRespOutputStream extends RespOutputStream {
      * @throws IOException If write fails
      */
     private void writeIntAsString(int value) throws IOException {
-
-        // compute string size for the given value
-        // taken from Integer#stringSize(int)
-        int size = 0;
-        while (value > SIZE_TABLE[size]) {
-            size++;
-        }
-        size++;
-
-        if (size >= buffer.length - cursor) {
+        int off = cursor;
+        int size = Integers.getStringSize(value);
+        if (size >= buffer.length - off) {
             flushBuffer();
         }
-
-        int pos = cursor + size;
-
-        // write the integer as string into 'valueBytes', because
-        // we can't read the number digits from left to right
-        // (code taken from Integer#getChars)
-        int q;
-        int r;
-        while (value >= TWO_BYTES_BITS) {
-            q = value / 100;
-            r = value - ((q << 6) + (q << 5) + (q << 2));
-            value = q;
-            buffer[--pos] = DIGITS_ONES[r];
-            buffer[--pos] = DIGITS_TENS[r];
-        }
-
-        do {
-            q = (value * 52429) >>> 19;
-            r = value - ((q << 3) + (q << 1));
-            buffer[--pos] = DIGITS[r];
-        } while ((value = q) != 0);
-
+        Integers.getChars(value, buffer, off, size);
         cursor += size;
     }
 
@@ -183,28 +127,7 @@ public class BufferedRespOutputStream extends RespOutputStream {
     public void writeNullBulkString() throws IOException {
         // bulk string start
         write(Resp.BULK_STRING_BYTE);
-
-        // write length (-1)
-        write(Resp.SCRIPT_BYTE);
-        write((byte) '1');
-
-        // write termination
-        writeTermination();
-    }
-
-    @Override
-    public void writeArray(RespWritable... array) throws IOException {
-        // array start
-        write(Resp.ARRAY_BYTE);
-
-        // array length write
-        writeIntAsString(array.length);
-        writeTermination();
-
-        // element write
-        for (RespWritable writer : array) {
-            writer.write(this);
-        }
+        writeNegativeOneAndTermination();
     }
 
     @Override
@@ -224,19 +147,12 @@ public class BufferedRespOutputStream extends RespOutputStream {
 
     @Override
     public void writeNullArray() throws IOException {
-        // array start
         write(Resp.ARRAY_BYTE);
-
-        // write length (-1)
-        write(Resp.SCRIPT_BYTE);
-        write((byte) '1');
-
-        // termination
-        writeTermination();
+        writeNegativeOneAndTermination();
     }
 
     @Override
-    public void writeCommand(RespWritable command, byte[]... args) throws IOException {
+    public void writeCommand(byte[] command, byte[]... args) throws IOException {
         // array start
         write(Resp.ARRAY_BYTE);
 
@@ -244,7 +160,7 @@ public class BufferedRespOutputStream extends RespOutputStream {
         writeIntAsString(args.length + 1);
         writeTermination();
 
-        command.write(this);
+        write(command);
 
         // element write
         for (byte[] element : args) {
