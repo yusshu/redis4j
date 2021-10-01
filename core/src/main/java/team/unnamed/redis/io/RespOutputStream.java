@@ -1,5 +1,7 @@
 package team.unnamed.redis.io;
 
+import team.unnamed.redis.Resp;
+
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -10,10 +12,89 @@ import java.io.OutputStream;
  * Protocol
  * @author yusshu (Andre Roldan)
  */
-public abstract class RespOutputStream extends FilterOutputStream {
+public class RespOutputStream extends FilterOutputStream {
 
-    protected RespOutputStream(OutputStream out) {
+    private final byte[] buffer;
+    private int cursor;
+
+    public RespOutputStream(OutputStream out, int bufferLength) {
         super(out);
+        this.buffer = new byte[bufferLength];
+    }
+
+    protected void flushBuffer() throws IOException {
+        if (cursor > 0) {
+            out.write(buffer, 0, cursor);
+            cursor = 0;
+        }
+    }
+
+    @Override
+    public void write(int b) throws IOException {
+        if (cursor >= buffer.length) {
+            flushBuffer();
+        }
+        buffer[cursor++] = (byte) b;
+    }
+
+    @Override
+    public void write(byte[] bytes, int offset, int len) throws IOException {
+        if (len >= buffer.length) {
+            flushBuffer();
+            out.write(bytes, offset, len);
+        } else {
+            if (len > buffer.length - cursor) {
+                flushBuffer();
+            }
+
+            System.arraycopy(bytes, offset, buffer, cursor, len);
+            cursor += len;
+        }
+    }
+
+    @Override
+    public void write(byte[] bytes) throws IOException {
+        this.write(bytes, 0, bytes.length);
+    }
+
+    @Override
+    public void flush() throws IOException {
+        flushBuffer();
+        out.flush();
+    }
+
+    private void writeTermination() throws IOException {
+        if (2 >= buffer.length) {
+            flushBuffer();
+        }
+        buffer[cursor++] = Resp.CARRIAGE_RETURN;
+        buffer[cursor++] = Resp.LINE_FEED;
+    }
+
+    private void writeNegativeOneAndTermination() throws IOException {
+        if (4 >= buffer.length) {
+            flushBuffer();
+        }
+        buffer[cursor++] = Resp.CARRIAGE_RETURN;
+        buffer[cursor++] = Resp.LINE_FEED;
+        buffer[cursor++] = Resp.SCRIPT_BYTE;
+        buffer[cursor++] = Resp.ASCII_ONE_BYTE;
+    }
+
+    /**
+     * Writes the given {@code value} integer into the given
+     * {@code output} as a string. The given {@code value}
+     * must not be negative or weird things may happen
+     * @throws IOException If write fails
+     */
+    private void writeIntAsString(int value) throws IOException {
+        int off = cursor;
+        int size = Integers.getStringSize(value);
+        if (size >= buffer.length - off) {
+            flushBuffer();
+        }
+        Integers.getChars(value, buffer, off, size);
+        cursor += size;
     }
 
     /**
@@ -26,7 +107,19 @@ public abstract class RespOutputStream extends FilterOutputStream {
      *
      * @throws IOException If write fails
      */
-    public abstract void writeInt(int value) throws IOException;
+    public void writeInt(int value) throws IOException {
+        // TODO: Specification says '64 bit' integer but we're using a 32 bit integer hmm
+        // integer start
+        write(Resp.INTEGER_BYTE);
+
+        // integer write
+        if (value < 0) {
+            write(Resp.SCRIPT_BYTE);
+            value = -value;
+        }
+        writeIntAsString(value);
+        writeTermination();
+    }
 
     /**
      * Writes the given string {@code value} into this output
@@ -40,7 +133,14 @@ public abstract class RespOutputStream extends FilterOutputStream {
      *   +Pong!\r\n
      * @throws IOException If write fails
      */
-    public abstract void writeSimpleString(String value) throws IOException;
+    public void writeSimpleString(String value) throws IOException {
+        // simple string start
+        write(Resp.SIMPLE_STRING_BYTE);
+
+        // write actual string
+        write(value.getBytes(Resp.CHARSET));
+        writeTermination();
+    }
 
     /**
      * Writes the given string {@code value} into this output
@@ -51,7 +151,18 @@ public abstract class RespOutputStream extends FilterOutputStream {
      *   $0\r\n\r\n
      * @throws IOException If write fails
      */
-    public abstract void writeBulkString(byte[] value) throws IOException;
+    public void writeBulkString(byte[] value) throws IOException {
+        // bulk data start
+        write(Resp.BULK_STRING_BYTE);
+
+        // write data length
+        writeIntAsString(value.length);
+        writeTermination();
+
+        // write the actual data
+        write(value);
+        writeTermination();
+    }
 
     /**
      * Variation of {@link RespOutputStream#writeBulkString}, it just
@@ -61,7 +172,11 @@ public abstract class RespOutputStream extends FilterOutputStream {
      * It writes: $-1\r\n
      * @throws IOException If write fails
      */
-    public abstract void writeNullBulkString() throws IOException;
+    public void writeNullBulkString() throws IOException {
+        // bulk string start
+        write(Resp.BULK_STRING_BYTE);
+        writeNegativeOneAndTermination();
+    }
 
     /**
      * Writes the given {@code array} into this output stream following
@@ -72,7 +187,19 @@ public abstract class RespOutputStream extends FilterOutputStream {
      *   *2\r\n+Hello\r\n+World\r\n
      * @throws IOException If write fails
      */
-    public abstract void writeArray(byte[]... array) throws IOException;
+    public void writeArray(byte[]... array) throws IOException {
+        // array start
+        write(Resp.ARRAY_BYTE);
+
+        // array length write
+        writeIntAsString(array.length);
+        writeTermination();
+
+        // element write
+        for (byte[] element : array) {
+            write(element);
+        }
+    }
 
     /**
      * Writes a null array into this output stream following the RESP
@@ -83,7 +210,10 @@ public abstract class RespOutputStream extends FilterOutputStream {
      * different
      * @throws IOException If write fails
      */
-    public abstract void writeNullArray() throws IOException;
+    public void writeNullArray() throws IOException {
+        write(Resp.ARRAY_BYTE);
+        writeNegativeOneAndTermination();
+    }
 
     /**
      * Writes the given {@code command} and {@code args} to the underlying
@@ -92,6 +222,20 @@ public abstract class RespOutputStream extends FilterOutputStream {
      * bulk strings isn't necessary
      * @throws IOException If write fails
      */
-    public abstract void writeCommand(byte[] command, byte[]... args) throws IOException;
+    public void writeCommand(byte[] command, byte[]... args) throws IOException {
+        // array start
+        write(Resp.ARRAY_BYTE);
+
+        // write length
+        writeIntAsString(args.length + 1);
+        writeTermination();
+
+        write(command);
+
+        // element write
+        for (byte[] element : args) {
+            writeBulkString(element);
+        }
+    }
 
 }
